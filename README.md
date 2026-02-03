@@ -33,8 +33,11 @@ python send_whatsapp_files.py <path_to_csv_or_xlsx> [options]
 # Use default message template with per-contact files from CSV
 python send_whatsapp_files.py contacts.xlsx
 
-# Send a custom message to all contacts (no attachment)
-python send_whatsapp_files.py contacts.csv -m "Hello! This is a reminder."
+# Send a custom message with placeholders from CSV columns
+python send_whatsapp_files.py contacts.csv -m "Hola {representante} de {club}, te invitamos!"
+
+# See available placeholders for your CSV file
+python send_whatsapp_files.py contacts.csv --show-placeholders
 
 # Send a custom message with the same attachment to all contacts
 python send_whatsapp_files.py contacts.csv -m "Check this out!" -a flyer.jpg
@@ -47,9 +50,38 @@ python send_whatsapp_files.py contacts.csv -a announcement.pdf
 
 | Option | Description |
 |--------|-------------|
-| `-m`, `--message` | Custom message to send to all contacts (overrides the default template) |
+| `-m`, `--message` | Custom message with placeholders like `{representante}`, `{club}`, etc. (see `--show-placeholders`) |
 | `-a`, `--attachment` | Path to attachment file to send to all contacts (overrides the `dir` column) |
+| `--show-placeholders` | Show available placeholders from the CSV file and exit |
 | `-h`, `--help` | Show help message and exit |
+
+## Message Placeholders
+
+You can use placeholders in your custom messages that will be replaced with values from your CSV columns. Use curly braces around the column name:
+
+```bash
+python send_whatsapp_files.py contacts.csv -m "Hola {representante} de {club}, te invitamos al evento!"
+```
+
+To see all available placeholders for your specific CSV file:
+
+```bash
+python send_whatsapp_files.py contacts.csv --show-placeholders
+```
+
+Example output:
+```
+Available placeholders from 'contacts.csv':
+==================================================
+  {item}  (e.g., "1")
+  {club}  (e.g., "ANDES BASKET CLUB")
+  {representante}  (e.g., "Edwin Velasco")
+  {celular}  (e.g., "991484150")
+  {dir}  (e.g., "ANDES BASKET CLUB.pdf")
+==================================================
+```
+
+If you use a placeholder that doesn't exist in the CSV, it will remain unchanged in the message.
 
 ## Data File Format
 
@@ -80,4 +112,4 @@ Edit `send_whatsapp_files.py` to customize:
 
 - `COUNTRY_CODE`: Default is "593" (Ecuador)
 - `FILES_BASE_DIR`: Directory where files are stored (for per-contact attachments)
-- `MESSAGE_TEMPLATE`: The default message template (supports `{representante}` and `{club}` placeholders)
+- `MESSAGE_TEMPLATE`: The default message template (supports any CSV column as placeholder, e.g., `{representante}`, `{club}`)

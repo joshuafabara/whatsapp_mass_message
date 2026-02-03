@@ -47,6 +47,12 @@ check_dependencies()
 
 import pandas as pd
 
+
+class SafeDict(dict):
+    """A dict that returns the placeholder unchanged if key is missing."""
+    def __missing__(self, key):
+        return '{' + key + '}'
+
 # Configuration
 COUNTRY_CODE = "593"  # Ecuador
 
@@ -145,8 +151,11 @@ Examples:
   # Use default message template with per-contact files from CSV
   python send_whatsapp_files.py contacts.csv
 
-  # Send a custom message to all contacts (no attachment)
-  python send_whatsapp_files.py contacts.csv -m "Hello! This is a reminder."
+  # Send a custom message with placeholders from CSV columns
+  python send_whatsapp_files.py contacts.csv -m "Hola {representante} de {club}, te invitamos!"
+
+  # See available placeholders for your CSV file
+  python send_whatsapp_files.py contacts.csv --show-placeholders
 
   # Send a custom message with the same attachment to all contacts
   python send_whatsapp_files.py contacts.csv -m "Check this out!" -a image.jpg
@@ -161,13 +170,35 @@ Examples:
     )
     parser.add_argument(
         "-m", "--message",
-        help="Custom message to send to all contacts (overrides the default template)"
+        help="Custom message with placeholders like {representante}, {club}, etc. Use --show-placeholders to see available options"
     )
     parser.add_argument(
         "-a", "--attachment",
         help="Path to attachment file to send to all contacts (overrides the 'dir' column)"
     )
+    parser.add_argument(
+        "--show-placeholders",
+        action="store_true",
+        help="Show available placeholders from the CSV file and exit"
+    )
     return parser.parse_args()
+
+
+def show_placeholders(data_file):
+    """Show available placeholders from the CSV file."""
+    df = load_data(data_file)
+    print(f"\nAvailable placeholders from '{data_file}':")
+    print("=" * 50)
+    for col in df.columns:
+        sample = df[col].dropna().iloc[0] if not df[col].dropna().empty else "N/A"
+        # Truncate long samples
+        sample_str = str(sample)
+        if len(sample_str) > 30:
+            sample_str = sample_str[:27] + "..."
+        print(f"  {{{col}}}  (e.g., \"{sample_str}\")")
+    print("=" * 50)
+    print("\nUsage example:")
+    print(f'  python send_whatsapp_files.py {data_file} -m "Hola {{representante}} de {{club}}"')
 
 
 def main():
@@ -180,6 +211,11 @@ def main():
     if not os.path.exists(data_file):
         print(f"Error: File not found: {data_file}")
         sys.exit(1)
+
+    # Show placeholders and exit if requested
+    if args.show_placeholders:
+        show_placeholders(data_file)
+        sys.exit(0)
 
     # Validate custom attachment if provided
     if custom_attachment and not os.path.exists(custom_attachment):
@@ -266,11 +302,16 @@ def main():
         else:
             file_path = None
 
-        # Generate message
+        # Generate message - build a dict of all row values for placeholder replacement
+        row_values = SafeDict({col: str(row[col]) if pd.notna(row[col]) else '' for col in row.index})
+        # Also add common aliases
+        row_values['representante'] = name
+        row_values['club'] = club
+
         if custom_message:
-            message = custom_message
+            message = custom_message.format_map(row_values)
         else:
-            message = MESSAGE_TEMPLATE.format(representante=name, club=club)
+            message = MESSAGE_TEMPLATE.format_map(row_values)
 
         print(f"\n{'='*60}")
         print(f"CONTACT {idx + 1} of {total}")

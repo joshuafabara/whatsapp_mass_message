@@ -44,6 +44,9 @@ python send_whatsapp_files.py contacts.csv -m "Check this out!" -a flyer.jpg
 
 # Send just an attachment (same for all) with default message template
 python send_whatsapp_files.py contacts.csv -a announcement.pdf
+
+# Real Example
+python send_whatsapp_files.py csv_general/csv_general.csv -a adjuntos/alpha_categorias.jpeg -m $'Hola {representante}, luego de haber recibido la invitación a Alpha Cup Apertura 2026, cumplimos con comentarte que la fecha máxima para enviar la lista de equipos participantes es el 9 de Febrero del 2026. Quedamos atentos a tu confirmación. ¡Saludos!'
 ```
 
 ### Command-Line Options
